@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Medicação - Encontro de Homens (3 Dias)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .modal { animation: modalPop 0.3s ease-out; }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .touch-target { min-height: 56px; min-width: 56px; }
+        input, select, textarea, button { font-size: 1.15rem !important; }
+        
+        .cor-badge { 
+            width: 32px; 
+            height: 32px; 
+            border-radius: 50%; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.1);
+            border: 2px solid white;
+            flex-shrink: 0;
+        }
+
+        .filtro-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .filtro-chip.active {
+            border-color: #10b981;
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        tr:hover { background-color: #f8fafc; }
+        .horario-item { background-color: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-6">
+            <div>
+                <h1 class="text-4xl font-semibold flex items-center gap-4 text-slate-900">
+                    💊 Controle de Medicação
+                    <span id="nomeEncontro" class="text-emerald-800 text-2xl font-medium bg-emerald-100 px-6 py-2 rounded-3xl cursor-pointer hover:bg-emerald-200 transition" title="Clique para alterar o nome do encontro">Encontro de Homens - 3 Dias</span>
+                </h1>
+                <p class="text-slate-600 mt-2 text-lg">Clique no título para alterar o nome do encontro</p>
+            </div>
+            
+            <div class="flex flex-wrap gap-4">
+                <button onclick="exportarDados()" class="flex items-center gap-3 bg-white hover:bg-slate-100 border border-slate-300 px-8 py-4 rounded-3xl text-base font-medium text-slate-700 touch-target">
+                    <i class="fas fa-download"></i> Exportar Backup
+                </button>
+                <button onclick="importarDados()" class="flex items-center gap-3 bg-white hover:bg-slate-100 border border-slate-300 px-8 py-4 rounded-3xl text-base font-medium text-slate-700 touch-target">
+                    <i class="fas fa-upload"></i> Importar Backup
+                </button>
+                <button onclick="gerarRelatorioPDF()" class="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-3xl text-base font-medium touch-target shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-file-pdf"></i> Relatório PDF
+                </button>
+                <button onclick="abrirModalAdicionar()" 
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-5 rounded-3xl flex items-center gap-4 font-semibold text-xl shadow-xl shadow-emerald-500/30 touch-target">
+                    <i class="fas fa-plus text-2xl"></i> Novo Participante
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-8 shadow-sm space-y-6 mb-10">
+            <div class="relative">
+                <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 text-2xl"></i>
+                <input id="busca" onkeyup="filtrarParticipantes()" type="text" placeholder="Buscar por nome ou inscrição..." 
+                       class="w-full pl-16 pr-8 py-6 bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-3xl outline-none text-xl text-slate-800">
+            </div>
+            
+            <div>
+                <p class="text-lg font-bold text-slate-700 mb-4 px-2">Filtrar por Cor do Quarto:</p>
+                <div class="flex flex-wrap gap-3" id="filtroCoresContainer"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b bg-slate-50">
+                        <th class="text-left py-8 px-10 font-semibold text-slate-700 text-xl">PARTICIPANTE</th>
+                        <th class="text-left py-8 px-10 font-semibold text-slate-700 text-xl">INSCRIÇÃO</th>
+                        <th class="text-left py-8 px-10 font-semibold text-slate-700 text-xl">QUARTO</th>
+                        <th class="text-left py-8 px-10 font-semibold text-slate-700 text-xl">MEDICAÇÕES</th>
+                        <th class="text-center py-8 px-10 font-semibold text-slate-700 text-xl w-64">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody id="listaParticipantes" class="text-xl divide-y text-slate-800"></tbody>
+            </table>
+            <div id="mensagemVazia" class="hidden py-24 text-center text-slate-500">
+                <i class="fas fa-user-plus text-8xl mb-8 opacity-30"></i>
+                <p class="text-3xl">Nenhum participante cadastrado ainda</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalParticipante" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-white w-full max-w-4xl rounded-3xl modal shadow-2xl max-h-[92vh] flex flex-col">
+            <div class="px-8 pt-6 pb-4 border-b flex justify-between items-center">
+                <h2 id="modalTitulo" class="text-3xl font-semibold text-slate-800">Novo Participante</h2>
+                <i onclick="fecharModal()" class="fas fa-times text-3xl cursor-pointer text-slate-400 hover:text-slate-600"></i>
+            </div>
+            <div class="p-8 space-y-8 overflow-auto flex-1">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Nome completo</label>
+                        <input id="nome" type="text" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 focus:border-emerald-500 outline-none text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Número de inscrição</label>
+                        <input id="inscricao" type="text" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 focus:border-emerald-500 outline-none text-slate-800">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-4">Cor do quarto</label>
+                    <div class="flex flex-wrap gap-6" id="coresContainer"></div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-4">
+                        <label class="block text-sm font-medium text-slate-700">Remédios e horários</label>
+                        <button onclick="adicionarRemedio()" class="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-2">
+                            <i class="fas fa-plus"></i> Adicionar remédio
+                        </button>
+                    </div>
+                    <div id="listaRemedios" class="space-y-6"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Observações gerais</label>
+                    <textarea id="observacoes" rows="4" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 focus:border-emerald-500 outline-none text-slate-800"></textarea>
+                </div>
+            </div>
+            <div class="p-8 border-t flex justify-end gap-4">
+                <button onclick="fecharModal()" class="px-10 py-4 text-slate-700 font-medium rounded-3xl hover:bg-slate-100">Cancelar</button>
+                <button onclick="salvarParticipante()" id="btnSalvar" class="bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-4 rounded-3xl font-semibold">Salvar Participante</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalDetalhes" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-white w-full max-w-5xl rounded-3xl modal shadow-2xl flex flex-col max-h-[92vh]">
+            <div class="px-8 pt-6 pb-4 border-b flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                    <div id="detalheCor" class="cor-badge"></div>
+                    <div>
+                        <h2 id="detalheNome" class="text-3xl font-semibold text-slate-900"></h2>
+                        <p id="detalheInscricao" class="text-slate-700 text-xl"></p>
+                    </div>
+                </div>
+                <i onclick="fecharModalDetalhes()" class="fas fa-times text-3xl cursor-pointer text-slate-400 hover:text-slate-600"></i>
+            </div>
+            <div class="flex-1 p-8 overflow-auto text-slate-800" id="conteudoDetalhes"></div>
+            <div class="px-8 py-6 border-t flex justify-between items-center">
+                <button onclick="editarParticipanteAtual()" class="flex items-center gap-3 text-slate-700 hover:text-slate-900 font-semibold">
+                    <i class="fas fa-edit"></i> Editar participante
+                </button>
+                <div class="flex gap-4">
+                    <button onclick="gerarPDFParticipante(participanteAtualId)" class="px-8 py-4 bg-blue-600 text-white hover:bg-blue-700 rounded-3xl font-medium flex items-center gap-2">
+                        <i class="fas fa-file-pdf"></i> PDF Individual
+                    </button>
+                    <button onclick="excluirParticipanteAtual()" class="px-8 py-4 text-red-600 hover:bg-red-50 rounded-3xl font-medium">Excluir participante</button>
+                    <button onclick="fecharModalDetalhes()" class="px-10 py-4 text-slate-700 hover:bg-slate-100 rounded-3xl font-medium">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let participantes = [];
+        let participanteAtualId = null;
+        let corSelecionadaTemp = null;
+        let filtroCorSelecionada = "";
+
+        const diasEncontro = ['Sexta', 'Sábado', 'Domingo'];
+        const coresDisponiveis = [
+            { nome: 'Azul',     valor: '#3b82f6' },
+            { nome: 'Verde',    valor: '#10b981' },
+            { nome: 'Vermelho', valor: '#ef4444' },
+            { nome: 'Amarelo',  valor: '#eab308' },
+            { nome: 'Laranja',  valor: '#f97316' },
+            { nome: 'Rosa',     valor: '#f472b6' },
+            { nome: 'Roxo',     valor: '#a855f7' },
+            { nome: 'Cinza',    valor: '#64748b' }
+        ];
+
+        function carregarDados() {
+            const salvos = localStorage.getItem('participantesMedEncontro3Dias');
+            if (salvos) participantes = JSON.parse(salvos);
+            renderizarFiltros();
+            renderizarLista();
+            const nomeSalvo = localStorage.getItem('nomeEncontroAtual');
+            if (nomeSalvo) document.getElementById('nomeEncontro').textContent = nomeSalvo;
+        }
+
+        function salvarDados() {
+            localStorage.setItem('participantesMedEncontro3Dias', JSON.stringify(participantes));
+        }
+
+        function mudarNomeEncontro() {
+            const nomeAtual = document.getElementById('nomeEncontro').textContent;
+            const novoNome = prompt("Digite o novo nome do encontro:", nomeAtual);
+            if (novoNome && novoNome.trim() !== "") {
+                document.getElementById('nomeEncontro').textContent = novoNome.trim();
+                localStorage.setItem('nomeEncontroAtual', novoNome.trim());
+            }
+        }
+
+        function renderizarFiltros() {
+            const container = document.getElementById('filtroCoresContainer');
+            container.innerHTML = '';
+            const btnTodas = document.createElement('button');
+            btnTodas.className = `filtro-chip ${filtroCorSelecionada === "" ? 'active' : ''}`;
+            btnTodas.innerHTML = `Todas`;
+            btnTodas.onclick = () => { filtroCorSelecionada = ""; renderizarFiltros(); filtrarParticipantes(); };
+            container.appendChild(btnTodas);
+
+            coresDisponiveis.forEach(cor => {
+                const btn = document.createElement('button');
+                btn.className = `filtro-chip ${filtroCorSelecionada === cor.nome ? 'active' : ''}`;
+                btn.innerHTML = `<span class="cor-badge" style="background-color: ${cor.valor}; width: 18px; height: 18px; border: 1px solid #ddd"></span> ${cor.nome}`;
+                btn.onclick = () => { 
+                    filtroCorSelecionada = (filtroCorSelecionada === cor.nome) ? "" : cor.nome; 
+                    renderizarFiltros(); 
+                    filtrarParticipantes(); 
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderizarLista() {
+            const tbody = document.getElementById('listaParticipantes');
+            tbody.innerHTML = '';
+            const busca = document.getElementById('busca').value.toLowerCase();
+            const filtrados = participantes.filter(p => {
+                const matchBusca = p.nome.toLowerCase().includes(busca) || p.inscricao.toLowerCase().includes(busca);
+                const matchCor = filtroCorSelecionada === "" || p.corQuarto === filtroCorSelecionada;
+                return matchBusca && matchCor;
+            });
+
+            if (filtrados.length === 0) {
+                document.getElementById('mensagemVazia').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('mensagemVazia').classList.add('hidden');
+
+            filtrados.forEach(part => {
+                const totalRemedios = (part.medicamentos || []).length;
+                let totalHorarios = 0;
+                (part.medicamentos || []).forEach(r => totalHorarios += (r.horarios || []).length);
+                const corObj = coresDisponiveis.find(c => c.nome === part.corQuarto) || {valor:'#64748b'};
+
+                const tr = document.createElement('tr');
+                tr.className = 'cursor-pointer';
+                tr.innerHTML = `
+                    <td class="py-8 px-10 font-semibold text-slate-800">${part.nome}</td>
+                    <td class="py-8 px-10 text-slate-700">${part.inscricao}</td>
+                    <td class="py-8 px-10">
+                        <span class="flex items-center gap-3">
+                            <span class="cor-badge" style="background-color: ${corObj.valor}"></span>
+                            <span class="font-medium text-slate-700">${part.corQuarto}</span>
+                        </span>
+                    </td>
+                    <td class="py-8 px-10">
+                        <span class="font-medium text-slate-700">${totalRemedios} remédios • ${totalHorarios} horários</span>
+                    </td>
+                    <td class="py-8 px-10 text-center">
+                        <i onclick="event.stopImmediatePropagation(); verDetalhes('${part.id}')" class="fas fa-eye text-3xl text-emerald-600 hover:text-emerald-700"></i>
+                    </td>
+                `;
+                tr.addEventListener('click', () => verDetalhes(part.id));
+                tbody.appendChild(tr);
+            });
+        }
+
+        function abrirModalAdicionar() {
+            participanteAtualId = null;
+            corSelecionadaTemp = null;
+            document.getElementById('modalTitulo').textContent = 'Novo Participante';
+            document.getElementById('btnSalvar').textContent = 'Salvar Participante';
+            document.getElementById('nome').value = '';
+            document.getElementById('inscricao').value = '';
+            document.getElementById('observacoes').value = '';
+            document.getElementById('listaRemedios').innerHTML = '';
+            renderizarCoresSelecionaveis();
+            document.getElementById('modalParticipante').classList.remove('hidden');
+            document.getElementById('modalParticipante').classList.add('flex');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalParticipante').classList.add('hidden');
+            document.getElementById('modalParticipante').classList.remove('flex');
+        }
+
+        function renderizarCoresSelecionaveis() {
+            const container = document.getElementById('coresContainer');
+            container.innerHTML = '';
+            coresDisponiveis.forEach(cor => {
+                const div = document.createElement('div');
+                div.className = `flex flex-col items-center cursor-pointer p-3 rounded-2xl transition-all ${corSelecionadaTemp === cor.nome ? 'bg-emerald-100 ring-2 ring-emerald-500' : 'hover:bg-slate-100'}`;
+                div.innerHTML = `
+                    <div class="cor-badge mb-2" style="background-color: ${cor.valor}"></div>
+                    <span class="text-sm font-bold text-slate-700">${cor.nome}</span>
+                `;
+                div.onclick = () => { corSelecionadaTemp = cor.nome; renderizarCoresSelecionaveis(); };
+                container.appendChild(div);
+            });
+        }
+
+        function adicionarRemedio() {
+            const container = document.getElementById('listaRemedios');
+            const div = document.createElement('div');
+            div.className = 'bg-white border border-slate-200 rounded-3xl p-6 shadow-sm';
+            div.innerHTML = `
+                <input type="text" placeholder="Nome da medicação" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none mb-5 nome-remedio text-slate-800">
+                <div class="horarios-container space-y-4"></div>
+                <button onclick="adicionarHorario(this)" class="mt-4 text-emerald-700 font-semibold flex items-center gap-2"><i class="fas fa-clock"></i> Horário</button>
+                <button onclick="this.closest('div').remove()" class="mt-6 text-red-600 font-medium hover:underline">Remover medicamento</button>
+            `;
+            container.appendChild(div);
+            adicionarHorario(div.querySelector('button'));
+        }
+
+        function adicionarHorario(btn) {
+            const container = btn.parentElement.querySelector('.horarios-container');
+            const horarioDiv = document.createElement('div');
+            horarioDiv.className = 'horario-item flex gap-4 items-center bg-slate-50 p-5 rounded-2xl border border-slate-100';
+            horarioDiv.innerHTML = `
+                <input type="time" class="px-6 py-4 bg-white rounded-2xl border border-slate-200 w-48 horario-input text-slate-800 font-bold">
+                <div class="flex-1 flex gap-6 text-sm font-semibold text-slate-700">
+                    <label class="flex items-center gap-2"><input type="checkbox" class="dia-check w-5 h-5 accent-emerald-600" value="Sexta"> Sexta</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" class="dia-check w-5 h-5 accent-emerald-600" value="Sábado"> Sábado</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" class="dia-check w-5 h-5 accent-emerald-600" value="Domingo"> Domingo</label>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-red-500 text-2xl">×</button>
+            `;
+            container.appendChild(horarioDiv);
+        }
+
+        function salvarParticipante() {
+            const nome = document.getElementById('nome').value.trim();
+            const inscricao = document.getElementById('inscricao').value.trim();
+            const cor = corSelecionadaTemp || 'Azul';
+            const observacoes = document.getElementById('observacoes').value.trim();
+            if (!nome || !inscricao) { alert("Preencha nome e inscrição!"); return; }
+
+            const medicamentos = [];
+            document.querySelectorAll('#listaRemedios > div').forEach(remDiv => {
+                const nomeRem = remDiv.querySelector('.nome-remedio').value.trim();
+                if (!nomeRem) return;
+                const horarios = [];
+                remDiv.querySelectorAll('.horario-item').forEach(hItem => {
+                    const horario = hItem.querySelector('.horario-input').value;
+                    const dias = Array.from(hItem.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+                    if (horario && dias.length > 0) horarios.push({ horario, dias, tomado: {} });
+                });
+                if (horarios.length > 0) medicamentos.push({ id: 'rem-' + Date.now() + Math.random().toString(36), nome: nomeRem, horarios });
+            });
+
+            if (participanteAtualId) {
+                const part = participantes.find(p => p.id === participanteAtualId);
+                if (part) { Object.assign(part, { nome, inscricao, corQuarto: cor, medicamentos, observacoes }); }
+            } else {
+                participantes.push({ id: 'p-' + Date.now(), nome, inscricao, corQuarto: cor, medicamentos, observacoes });
+            }
+            salvarDados(); fecharModal(); renderizarLista(); alert("Salvo!");
+        }
+
+        function verDetalhes(id) {
+            const part = participantes.find(p => p.id === id);
+            if (!part) return;
+            participanteAtualId = id;
+            document.getElementById('detalheNome').textContent = part.nome;
+            document.getElementById('detalheInscricao').innerHTML = `Inscrição: <strong>${part.inscricao}</strong>`;
+            const corObj = coresDisponiveis.find(c => c.nome === part.corQuarto) || {valor: '#64748b'};
+            document.getElementById('detalheCor').style.backgroundColor = corObj.valor;
+
+            let html = `<h3 class="text-2xl font-bold mb-6 text-slate-800">Medicações por Dia</h3>`;
+            diasEncontro.forEach(dia => {
+                html += `<div class="mb-10"><h4 class="font-bold text-xl mb-5 text-emerald-800 border-b pb-2">${dia}</h4>`;
+                let temMed = false;
+                (part.medicamentos || []).forEach((rem, remIndex) => {
+                    (rem.horarios || []).forEach((hor, horIndex) => {
+                        if (hor.dias.includes(dia)) {
+                            temMed = true;
+                            const jaTomado = hor.tomado && hor.tomado[dia] === true;
+                            html += `
+                                <div class="flex items-center justify-between bg-slate-50 px-6 py-5 rounded-3xl mb-3 border border-slate-200">
+                                    <div><span class="font-bold text-slate-800">${rem.nome}</span><span class="ml-8 text-emerald-700 font-mono font-bold">${hor.horario}</span></div>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <span class="font-semibold ${jaTomado ? 'line-through text-emerald-600' : 'text-slate-700'}">Tomado</span>
+                                        <input type="checkbox" ${jaTomado ? 'checked' : ''} onchange="marcarComoTomado(${remIndex}, ${horIndex}, '${dia}', this.checked)" class="w-8 h-8 accent-emerald-600">
+                                    </label>
+                                </div>`;
+                        }
+                    });
+                });
+                if (!temMed) html += `<p class="text-slate-500 italic">Nenhuma medicação</p>`;
+                html += `</div>`;
+            });
+            html += `<div class="mt-10"><h4 class="font-bold text-xl mb-4">Observações</h4><textarea id="obsDetalhes" rows="6" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none">${part.observacoes || ''}</textarea><button onclick="salvarObservacoes()" class="mt-4 bg-emerald-600 text-white px-8 py-3 rounded-3xl font-bold shadow-lg">Salvar</button></div>`;
+            document.getElementById('conteudoDetalhes').innerHTML = html;
+            document.getElementById('modalDetalhes').classList.remove('hidden').classList.add('flex');
+        }
+
+        function marcarComoTomado(remIndex, horIndex, dia, valor) {
+            const part = participantes.find(p => p.id === participanteAtualId);
+            if (part && part.medicamentos[remIndex].horarios[horIndex]) {
+                const hor = part.medicamentos[remIndex].horarios[horIndex];
+                if (!hor.tomado) hor.tomado = {};
+                hor.tomado[dia] = valor;
+                salvarDados();
+            }
+        }
+
+        function salvarObservacoes() {
+            const part = participantes.find(p => p.id === participanteAtualId);
+            if (part) { part.observacoes = document.getElementById('obsDetalhes').value.trim(); salvarDados(); alert("Salvo!"); }
+        }
+
+        function fecharModalDetalhes() {
+            document.getElementById('modalDetalhes').classList.add('hidden').classList.remove('flex');
+            participanteAtualId = null; renderizarLista();
+        }
+
+        function editarParticipanteAtual() {
+            const part = participantes.find(p => p.id === participanteAtualId);
+            if (!part) return;
+            fecharModalDetalhes();
+            setTimeout(() => {
+                participanteAtualId = part.id;
+                document.getElementById('modalTitulo').textContent = 'Editar Participante';
+                document.getElementById('btnSalvar').textContent = 'Atualizar Participante';
+                document.getElementById('nome').value = part.nome;
+                document.getElementById('inscricao').value = part.inscricao;
+                document.getElementById('observacoes').value = part.observacoes || '';
+                corSelecionadaTemp = part.corQuarto;
+                document.getElementById('listaRemedios').innerHTML = '';
+                (part.medicamentos || []).forEach(rem => {
+                    const remDiv = document.createElement('div');
+                    remDiv.className = 'bg-white border border-slate-200 rounded-3xl p-6 shadow-sm';
+                    remDiv.innerHTML = `<input type="text" value="${rem.nome}" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none mb-5 nome-remedio text-slate-800 font-semibold"><div class="horarios-container space-y-4"></div><button onclick="adicionarHorario(this)" class="mt-4 text-emerald-700 font-semibold flex items-center gap-2"><i class="fas fa-clock"></i> Horário</button><button onclick="this.closest('div').remove()" class="mt-6 text-red-600 font-medium hover:underline">Remover</button>`;
+                    document.getElementById('listaRemedios').appendChild(remDiv);
+                    const container = remDiv.querySelector('.horarios-container');
+                    (rem.horarios || []).forEach(hor => {
+                        const hDiv = document.createElement('div');
+                        hDiv.className = 'horario-item flex gap-4 items-center bg-slate-50 p-5 rounded-2xl border border-slate-100';
+                        hDiv.innerHTML = `<input type="time" value="${hor.horario}" class="px-6 py-4 bg-white rounded-2xl border border-slate-200 w-48 horario-input text-slate-800 font-bold"><div class="flex-1 flex gap-6 text-sm font-semibold text-slate-700"><label class="flex items-center gap-2"><input type="checkbox" class="dia-check w-5 h-5 accent-emerald-600" value="Sexta" ${hor.dias.includes('Sexta')?'checked':''}> Sexta</label><label class="flex items-center gap-2"><input type="checkbox" class="dia-check w-5 h-5 accent-emerald-600" value="Sábado" ${hor.dias.includes('Sábado')?'checked':''}> Sábado</label><label class="flex items-center gap-2"><input type="checkbox" class="dia-check w-5 h-5 accent-emerald-600" value="Domingo" ${hor.dias.includes('Domingo')?'checked':''}> Domingo</label></div><button onclick="this.parentElement.remove()" class="text-red-500 text-2xl">×</button>`;
+                        container.appendChild(hDiv);
+                    });
+                });
+                renderizarCoresSelecionaveis();
+                document.getElementById('modalParticipante').classList.remove('hidden').classList.add('flex');
+            }, 300);
+        }
+
+        function excluirParticipanteAtual() {
+            if (confirm("Excluir participante?")) {
+                participantes = participantes.filter(p => p.id !== participanteAtualId);
+                salvarDados(); fecharModalDetalhes(); renderizarLista();
+            }
+        }
+
+        function filtrarParticipantes() { renderizarLista(); }
+
+        function exportarDados() {
+            const blob = new Blob([JSON.stringify(participantes, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `backup-med-${new Date().toISOString().slice(0,10)}.json`;
+            link.click();
+        }
+
+        function importarDados() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.onchange = e => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try { participantes = JSON.parse(ev.target.result); salvarDados(); renderizarLista(); renderizarFiltros(); alert('Sucesso!'); } catch (err) { alert('Erro!'); }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
+        }
+
+        // ===== FUNÇÃO PDF INDIVIDUAL (RESTAURADA) =====
+        function gerarPDFParticipante(id) {
+            const part = participantes.find(p => p.id === id);
+            if (!part) return;
+            const dataAtual = new Date().toLocaleDateString('pt-BR');
+            const corObj = coresDisponiveis.find(c => c.nome === part.corQuarto) || {valor: '#64748b'};
+
+            let html = `
+                <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #333;">
+                    <h1 style="text-align: center; color: #10b981; margin-bottom: 10px;">Relatório de Medicação</h1>
+                    <p style="text-align: center; color: #666; margin-bottom: 30px;">${document.getElementById('nomeEncontro').textContent}</p>
+                    <div style="background-color: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 10px solid ${corObj.valor}; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding: 8px;"><strong>Nome:</strong> ${part.nome}</td><td style="padding: 8px;"><strong>Inscrição:</strong> ${part.inscricao}</td></tr>
+                            <tr><td style="padding: 8px;"><strong>Quarto:</strong> ${part.corQuarto}</td><td style="padding: 8px;"><strong>Data:</strong> ${dataAtual}</td></tr>
+                        </table>
+                    </div>
+            `;
+
+            diasEncontro.forEach(dia => {
+                html += `<h3 style="background-color: #e0f2fe; padding: 10px; border-radius: 5px; margin-top: 20px; color: #0369a1;">${dia}</h3>`;
+                let tem = false;
+                (part.medicamentos || []).forEach(rem => {
+                    (rem.horarios || []).forEach(hor => {
+                        if (hor.dias.includes(dia)) {
+                            tem = true;
+                            const jaTomado = hor.tomado && hor.tomado[dia] === true;
+                            html += `
+                                <div style="background-color: ${jaTomado ? '#d1fae5' : '#fff'}; border: 1px solid #e5e7eb; padding: 12px; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                                    <span><strong>${rem.nome}</strong> às ${hor.horario}</span>
+                                    <span style="font-weight: bold; color: ${jaTomado ? '#10b981' : '#666'};">${jaTomado ? '✓ TOMADO' : 'Pendente'}</span>
+                                </div>`;
+                        }
+                    });
+                });
+                if (!tem) html += `<p style="color: #999; font-style: italic; padding: 5px;">Nenhuma medicação</p>`;
+            });
+
+            if (part.observacoes) html += `<div style="margin-top: 30px; background-color: #fef3c7; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b;"><strong>Observações:</strong><p>${part.observacoes}</p></div>`;
+            html += `</div>`;
+            html2pdf().set({ margin: 10, filename: `relatorio-${part.nome}.pdf` }).from(html).save();
+        }
+
+        // ===== FUNÇÃO PDF GERAL (RESTAURADA E CORRIGIDA CONFORME MODELO) =====
+        function gerarRelatorioPDF() {
+            if (participantes.length === 0) return;
+            const dataAtual = new Date().toLocaleDateString('pt-BR');
+            const horaAtual = new Date().toLocaleTimeString('pt-BR');
+
+            let html = `
+                <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #333;">
+                    <h1 style="text-align: center; color: #10b981; margin-bottom: 5px; font-size: 28px;">Relatório Geral de Medicações</h1>
+                    <p style="text-align: center; color: #666; margin-bottom: 10px; font-size: 14px;">${document.getElementById('nomeEncontro').textContent}</p>
+                    <p style="text-align: center; color: #999; margin-bottom: 30px; font-size: 12px;">Data: ${dataAtual}</p>
+                    <hr style="border: none; border-top: 2px solid #10b981; margin-bottom: 30px;">
+            `;
+
+            participantes.forEach((part, index) => {
+                const corObj = coresDisponiveis.find(c => c.nome === part.corQuarto) || {valor: '#64748b'};
+                html += `
+                    <div style="page-break-inside: avoid; margin-bottom: 40px; padding: 20px; background-color: #f8fafc; border-radius: 10px; border-left: 10px solid ${corObj.valor}; border-bottom: 1px solid #e2e8f0;">
+                        <h2 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">${index + 1}. ${part.nome}</h2>
+                        <p style="margin-bottom: 15px; font-size: 14px;"><strong>Inscrição:</strong> ${part.inscricao} | <strong>Quarto:</strong> ${part.corQuarto}</p>
+                `;
+
+                diasEncontro.forEach(dia => {
+                    html += `<h4 style="background-color: #dbeafe; padding: 8px; border-radius: 5px; margin: 15px 0 8px 0; color: #0369a1; font-size: 14px;">${dia}</h4>`;
+                    let tem = false;
+                    (part.medicamentos || []).forEach(rem => {
+                        (rem.horarios || []).forEach(hor => {
+                            if (hor.dias.includes(dia)) {
+                                tem = true;
+                                const jaTomado = hor.tomado && hor.tomado[dia] === true;
+                                html += `
+                                    <div style="background-color: ${jaTomado ? '#d1fae5' : '#fff'}; border: 1px solid #e5e7eb; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; display: flex; justify-content: space-between;">
+                                        <span><strong>${rem.nome}</strong> às ${hor.horario}</span>
+                                        <span style="color: ${jaTomado ? '#10b981' : '#999'}; font-weight: bold;">${jaTomado ? '✓ Tomado' : 'Pendente'}</span>
+                                    </div>`;
+                            }
+                        });
+                    });
+                    if (!tem) html += `<p style="color: #999; font-style: italic; font-size: 12px;">Nenhuma medicação</p>`;
+                });
+
+                if (part.observacoes) html += `<div style="margin-top: 12px; padding: 10px; background-color: #fef3c7; border-radius: 5px; border-left: 3px solid #f59e0b; font-size: 12px;"><strong>Observações:</strong><p>${part.observacoes}</p></div>`;
+                html += `</div>`;
+            });
+
+            html += `
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #10b981; text-align: center; color: #999; font-size: 11px;">
+                    <p>Total de participantes: ${participantes.length}</p>
+                    <p>Relatório gerado em ${dataAtual} às ${horaAtual}</p>
+                </div>
+            </div>`;
+
+            html2pdf().set({ margin: 10, filename: `relatorio-geral-${dataAtual.replace(/\//g, '-')}.pdf`, html2canvas: { scale: 2 }, jsPDF: { format: 'a4' } }).from(html).save();
+        }
+
+        window.onload = carregarDados;
+        document.getElementById('nomeEncontro').onclick = mudarNomeEncontro;
+    </script>
+</body>
+</html>
