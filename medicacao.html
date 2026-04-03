@@ -64,27 +64,32 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-6 py-8">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-6">
-            <div>
-                <h1 class="text-4xl font-semibold flex items-center gap-4 text-slate-900">
-                    💊 Controle de Medicação
-                    <span id="nomeEncontro" class="text-emerald-800 text-2xl font-medium bg-emerald-100 px-6 py-2 rounded-3xl cursor-pointer hover:bg-emerald-200 transition" title="Clique para alterar o nome do encontro">Encontro de Homens - 3 Dias</span>
+        <div class="flex flex-col lg:flex-row items-start justify-between mb-10 gap-8">
+            <div class="flex-shrink-0 max-w-md">
+                <h1 class="text-4xl font-semibold text-slate-900 leading-tight">
+                    💊 Controle de<br>Medicação
+                    <div class="mt-4 inline-block">
+                        <span id="nomeEncontro" class="text-emerald-800 text-2xl font-medium bg-emerald-100 px-6 py-2 rounded-3xl cursor-pointer hover:bg-emerald-200 transition" title="Clique para alterar o nome do encontro">Encontro de Homens - 3 Dias</span>
+                    </div>
                 </h1>
-                <p class="text-slate-600 mt-2 text-lg">Shekinah - A igreja do Leão</p>
+                <p class="text-slate-700 mt-4 text-lg font-medium">Shekinah - A igreja do Leão</p>
             </div>
             
-            <div class="flex flex-wrap gap-4">
-                <button onclick="exportarDados()" class="flex items-center gap-3 bg-white hover:bg-slate-100 border border-slate-300 px-8 py-4 rounded-3xl text-base font-medium text-slate-700 touch-target">
+            <div class="flex flex-wrap gap-3 justify-start lg:justify-end">
+                <button onclick="visualizarRelatorioRapido()" class="flex items-center gap-3 bg-white hover:bg-slate-100 border border-slate-300 px-6 py-4 rounded-3xl text-base font-medium text-emerald-700 touch-target">
+                    <i class="fas fa-eye"></i> Visão Geral Rápida
+                </button>
+                <button onclick="exportarDados()" class="flex items-center gap-3 bg-white hover:bg-slate-100 border border-slate-300 px-6 py-4 rounded-3xl text-base font-medium text-slate-700 touch-target">
                     <i class="fas fa-download"></i> Exportar Backup
                 </button>
-                <button onclick="importarDados()" class="flex items-center gap-3 bg-white hover:bg-slate-100 border border-slate-300 px-8 py-4 rounded-3xl text-base font-medium text-slate-700 touch-target">
+                <button onclick="importarDados()" class="flex items-center gap-3 bg-white hover:bg-slate-100 border border-slate-300 px-6 py-4 rounded-3xl text-base font-medium text-slate-700 touch-target">
                     <i class="fas fa-upload"></i> Importar Backup
                 </button>
-                <button onclick="gerarRelatorioPDF()" class="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-3xl text-base font-medium touch-target shadow-lg shadow-blue-500/30">
+                <button onclick="gerarRelatorioPDF()" class="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-3xl text-base font-medium touch-target shadow-lg shadow-blue-500/30">
                     <i class="fas fa-file-pdf"></i> Relatório PDF
                 </button>
                 <button onclick="abrirModalAdicionar()" 
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-5 rounded-3xl flex items-center gap-4 font-semibold text-xl shadow-xl shadow-emerald-500/30 touch-target">
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-5 rounded-3xl flex items-center gap-4 font-semibold text-xl shadow-xl shadow-emerald-500/30 touch-target">
                     <i class="fas fa-plus text-2xl"></i> Novo Participante
                 </button>
             </div>
@@ -119,6 +124,24 @@
             <div id="mensagemVazia" class="hidden py-24 text-center text-slate-500">
                 <i class="fas fa-user-plus text-8xl mb-8 opacity-30"></i>
                 <p class="text-3xl">Nenhum participante cadastrado ainda</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalRelatorioRapido" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+        <div class="bg-white w-full max-w-6xl rounded-3xl modal shadow-2xl max-h-[92vh] flex flex-col">
+            <div class="px-8 pt-6 pb-4 border-b flex justify-between items-center bg-emerald-50 rounded-t-3xl">
+                <div>
+                    <h2 class="text-3xl font-bold text-emerald-900">Visão Geral de Medicações</h2>
+                    <p class="text-emerald-700" id="infoRelatorioRapido"></p>
+                </div>
+                <i onclick="fecharRelatorioRapido()" class="fas fa-times text-3xl cursor-pointer text-emerald-900 hover:text-emerald-600"></i>
+            </div>
+            <div class="p-8 overflow-auto flex-1 space-y-8" id="conteudoRelatorioRapido"></div>
+            <div class="p-6 border-t flex justify-center bg-slate-50 rounded-b-3xl">
+                <button onclick="fecharRelatorioRapido()" class="px-12 py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 shadow-lg transition">
+                    Fechar Visualização
+                </button>
             </div>
         </div>
     </div>
@@ -427,8 +450,7 @@
             });
             html += `<div class="mt-10"><h4 class="font-bold text-xl mb-4">Observações</h4><textarea id="obsDetalhes" rows="6" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none">${part.observacoes || ''}</textarea><button onclick="salvarObservacoes()" class="mt-4 bg-emerald-600 text-white px-8 py-3 rounded-3xl font-bold shadow-lg">Salvar</button></div>`;
             document.getElementById('conteudoDetalhes').innerHTML = html;
-            document.getElementById('modalDetalhes').classList.remove('hidden');
-            document.getElementById('modalDetalhes').classList.add('flex');
+            document.getElementById('modalDetalhes').classList.remove('hidden').classList.add('flex');
         }
 
         function marcarComoTomado(remIndex, horIndex, dia, valor) {
@@ -447,8 +469,7 @@
         }
 
         function fecharModalDetalhes() {
-            document.getElementById('modalDetalhes').classList.add('hidden');
-            document.getElementById('modalDetalhes').classList.remove('flex');
+            document.getElementById('modalDetalhes').classList.add('hidden').classList.remove('flex');
             participanteAtualId = null; renderizarLista();
         }
 
@@ -479,8 +500,7 @@
                     });
                 });
                 renderizarCoresSelecionaveis();
-                document.getElementById('modalParticipante').classList.remove('hidden');
-                document.getElementById('modalParticipante').classList.add('flex');
+                document.getElementById('modalParticipante').classList.remove('hidden').classList.add('flex');
             }, 300);
         }
 
@@ -501,7 +521,7 @@
             link.href = URL.createObjectURL(blob);
             link.download = `backup-med-encontro-${new Date().toISOString().slice(0,10)}.json`;
             link.click();
-            alert("Backup exportado com sucesso! Guarde este arquivo em um local seguro.");
+            alert("Backup exportado com sucesso!");
         }
 
         function importarDados() {
@@ -513,32 +533,62 @@
                     try { 
                         participantes = JSON.parse(ev.target.result); 
                         salvarDados(); renderizarLista(); renderizarFiltros(); 
-                        alert('✅ Dados importados com sucesso!'); 
-                    } catch (err) { alert('Erro ao importar arquivo!'); }
+                        alert('✅ Sucesso!'); 
+                    } catch (err) { alert('Erro!'); }
                 };
                 reader.readAsText(e.target.files[0]);
             };
             input.click();
         }
 
+        function visualizarRelatorioRapido() {
+            if (participantes.length === 0) { alert("Nenhum participante."); return; }
+            const container = document.getElementById('conteudoRelatorioRapido');
+            const info = document.getElementById('infoRelatorioRapido');
+            const dataAtual = new Date().toLocaleDateString('pt-BR');
+            const horaAtual = new Date().toLocaleTimeString('pt-BR');
+
+            info.textContent = `Atualizado em ${dataAtual} às ${horaAtual} • Total de ${participantes.length}`;
+            container.innerHTML = '';
+
+            participantes.forEach((part, index) => {
+                const corObj = coresDisponiveis.find(c => c.nome === part.corQuarto) || {valor: '#64748b'};
+                const card = document.createElement('div');
+                card.className = `bg-slate-50 rounded-2xl border-l-[12px] border-b border-r border-t border-slate-200 p-6 shadow-sm`;
+                card.style.borderLeftColor = corObj.valor;
+
+                let medHtml = '';
+                diasEncontro.forEach(dia => {
+                    let medsDoDia = [];
+                    (part.medicamentos || []).forEach(rem => {
+                        (rem.horarios || []).forEach(hor => {
+                            if (hor.dias.includes(dia)) {
+                                const jaTomado = hor.tomado && hor.tomado[dia] === true;
+                                medsDoDia.push(`
+                                    <div class="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
+                                        <span class="${jaTomado ? 'text-emerald-600 font-bold' : 'text-slate-700'}">${rem.nome} às ${hor.horario}</span>
+                                        <span class="text-xs font-bold px-2 py-1 rounded ${jaTomado ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}">${jaTomado ? '✓ TOMADO' : 'PENDENTE'}</span>
+                                    </div>`);
+                            }
+                        });
+                    });
+                    medHtml += `<div class="mt-4"><h5 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${dia}</h5><div class="mt-1">${medsDoDia.length > 0 ? medsDoDia.join('') : '<p class="text-xs text-slate-400 italic">Sem medicação</p>'}</div></div>`;
+                });
+
+                card.innerHTML = `<div class="flex justify-between items-start border-b border-slate-200 pb-3 mb-2"><div><h4 class="text-xl font-bold text-slate-800">${index + 1}. ${part.nome}</h4><p class="text-sm text-slate-500 font-medium">Inscrição: ${part.inscricao} | Quarto: ${part.corQuarto}</p></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4">${medHtml}</div>${part.observacoes ? `<div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 text-sm text-amber-800"><strong>Obs:</strong> ${part.observacoes}</div>` : ''}`;
+                container.appendChild(card);
+            });
+            document.getElementById('modalRelatorioRapido').classList.remove('hidden').classList.add('flex');
+        }
+
+        function fecharRelatorioRapido() { document.getElementById('modalRelatorioRapido').classList.add('hidden').classList.remove('flex'); }
+
         function gerarPDFParticipante(id) {
             const part = participantes.find(p => p.id === id);
             if (!part) return;
             const dataAtual = new Date().toLocaleDateString('pt-BR');
             const corObj = coresDisponiveis.find(c => c.nome === part.corQuarto) || {valor: '#64748b'};
-
-            let html = `
-                <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #333;">
-                    <h1 style="text-align: center; color: #10b981; margin-bottom: 10px;">Relatório de Medicação</h1>
-                    <p style="text-align: center; color: #666; margin-bottom: 30px;">${document.getElementById('nomeEncontro').textContent}</p>
-                    <div style="background-color: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 10px solid ${corObj.valor}; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <tr><td style="padding: 8px;"><strong>Nome:</strong> ${part.nome}</td><td style="padding: 8px;"><strong>Inscrição:</strong> ${part.inscricao}</td></tr>
-                            <tr><td style="padding: 8px;"><strong>Quarto:</strong> ${part.corQuarto}</td><td style="padding: 8px;"><strong>Data:</strong> ${dataAtual}</td></tr>
-                        </table>
-                    </div>
-            `;
-
+            let html = `<div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #333;"><h1 style="text-align: center; color: #10b981; margin-bottom: 10px;">Relatório de Medicação</h1><p style="text-align: center; color: #666; margin-bottom: 30px;">${document.getElementById('nomeEncontro').textContent}</p><div style="background-color: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 10px solid ${corObj.valor}; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;"><table style="width: 100%; border-collapse: collapse;"><tr><td style="padding: 8px;"><strong>Nome:</strong> ${part.nome}</td><td style="padding: 8px;"><strong>Inscrição:</strong> ${part.inscricao}</td></tr><tr><td style="padding: 8px;"><strong>Quarto:</strong> ${part.corQuarto}</td><td style="padding: 8px;"><strong>Data:</strong> ${dataAtual}</td></tr></table></div>`;
             diasEncontro.forEach(dia => {
                 html += `<h3 style="background-color: #e0f2fe; padding: 10px; border-radius: 5px; margin-top: 20px; color: #0369a1;">${dia}</h3>`;
                 let tem = false;
@@ -547,17 +597,12 @@
                         if (hor.dias.includes(dia)) {
                             tem = true;
                             const jaTomado = hor.tomado && hor.tomado[dia] === true;
-                            html += `
-                                <div style="background-color: ${jaTomado ? '#d1fae5' : '#fff'}; border: 1px solid #e5e7eb; padding: 12px; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;">
-                                    <span><strong>${rem.nome}</strong> às ${hor.horario}</span>
-                                    <span style="font-weight: bold; color: ${jaTomado ? '#10b981' : '#666'};">${jaTomado ? '✓ TOMADO' : 'Pendente'}</span>
-                                </div>`;
+                            html += `<div style="background-color: ${jaTomado ? '#d1fae5' : '#fff'}; border: 1px solid #e5e7eb; padding: 12px; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;"><span><strong>${rem.nome}</strong> às ${hor.horario}</span><span style="font-weight: bold; color: ${jaTomado ? '#10b981' : '#666'};">${jaTomado ? '✓ TOMADO' : 'Pendente'}</span></div>`;
                         }
                     });
                 });
                 if (!tem) html += `<p style="color: #999; font-style: italic; padding: 5px;">Nenhuma medicação</p>`;
             });
-
             if (part.observacoes) html += `<div style="margin-top: 30px; background-color: #fef3c7; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b;"><strong>Observações:</strong><p>${part.observacoes}</p></div>`;
             html += `</div>`;
             html2pdf().set({ margin: 10, filename: `relatorio-${part.nome}.pdf` }).from(html).save();
@@ -567,23 +612,10 @@
             if (participantes.length === 0) return;
             const dataAtual = new Date().toLocaleDateString('pt-BR');
             const horaAtual = new Date().toLocaleTimeString('pt-BR');
-
-            let html = `
-                <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #333;">
-                    <h1 style="text-align: center; color: #10b981; margin-bottom: 5px; font-size: 28px;">Relatório Geral de Medicações</h1>
-                    <p style="text-align: center; color: #666; margin-bottom: 10px; font-size: 14px;">${document.getElementById('nomeEncontro').textContent}</p>
-                    <p style="text-align: center; color: #999; margin-bottom: 30px; font-size: 12px;">Data: ${dataAtual}</p>
-                    <hr style="border: none; border-top: 2px solid #10b981; margin-bottom: 30px;">
-            `;
-
+            let html = `<div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #333;"><h1 style="text-align: center; color: #10b981; margin-bottom: 5px; font-size: 28px;">Relatório Geral de Medicações</h1><p style="text-align: center; color: #666; margin-bottom: 10px; font-size: 14px;">${document.getElementById('nomeEncontro').textContent}</p><p style="text-align: center; color: #999; margin-bottom: 30px; font-size: 12px;">Data: ${dataAtual}</p><hr style="border: none; border-top: 2px solid #10b981; margin-bottom: 30px;">`;
             participantes.forEach((part, index) => {
                 const corObj = coresDisponiveis.find(c => c.nome === part.corQuarto) || {valor: '#64748b'};
-                html += `
-                    <div style="page-break-inside: avoid; margin-bottom: 40px; padding: 20px; background-color: #f8fafc; border-radius: 10px; border-left: 10px solid ${corObj.valor}; border-bottom: 1px solid #e2e8f0;">
-                        <h2 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">${index + 1}. ${part.nome}</h2>
-                        <p style="margin-bottom: 15px; font-size: 14px;"><strong>Inscrição:</strong> ${part.inscricao} | <strong>Quarto:</strong> ${part.corQuarto}</p>
-                `;
-
+                html += `<div style="page-break-inside: avoid; margin-bottom: 40px; padding: 20px; background-color: #f8fafc; border-radius: 10px; border-left: 10px solid ${corObj.valor}; border-bottom: 1px solid #e2e8f0;"><h2 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">${index + 1}. ${part.nome}</h2><p style="margin-bottom: 15px; font-size: 14px;"><strong>Inscrição:</strong> ${part.inscricao} | <strong>Quarto:</strong> ${part.corQuarto}</p>`;
                 diasEncontro.forEach(dia => {
                     html += `<h4 style="background-color: #dbeafe; padding: 8px; border-radius: 5px; margin: 15px 0 8px 0; color: #0369a1; font-size: 14px;">${dia}</h4>`;
                     let tem = false;
@@ -592,38 +624,20 @@
                             if (hor.dias.includes(dia)) {
                                 tem = true;
                                 const jaTomado = hor.tomado && hor.tomado[dia] === true;
-                                html += `
-                                    <div style="background-color: ${jaTomado ? '#d1fae5' : '#fff'}; border: 1px solid #e5e7eb; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; display: flex; justify-content: space-between;">
-                                        <span><strong>${rem.nome}</strong> às ${hor.horario}</span>
-                                        <span style="color: ${jaTomado ? '#10b981' : '#999'}; font-weight: bold;">${jaTomado ? '✓ Tomado' : 'Pendente'}</span>
-                                    </div>`;
+                                html += `<div style="background-color: ${jaTomado ? '#d1fae5' : '#fff'}; border: 1px solid #e5e7eb; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; display: flex; justify-content: space-between;"><span><strong>${rem.nome}</strong> às ${hor.horario}</span><span style="color: ${jaTomado ? '#10b981' : '#999'}; font-weight: bold;">${jaTomado ? '✓ Tomado' : 'Pendente'}</span></div>`;
                             }
                         });
                     });
                     if (!tem) html += `<p style="color: #999; font-style: italic; font-size: 12px;">Nenhuma medicação</p>`;
                 });
-
                 if (part.observacoes) html += `<div style="margin-top: 12px; padding: 10px; background-color: #fef3c7; border-radius: 5px; border-left: 3px solid #f59e0b; font-size: 12px;"><strong>Observações:</strong><p>${part.observacoes}</p></div>`;
                 html += `</div>`;
             });
-
-            html += `
-                <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #10b981; text-align: center; color: #999; font-size: 11px;">
-                    <p>Total de participantes: ${participantes.length}</p>
-                    <p>Relatório gerado em ${dataAtual} às ${horaAtual}</p>
-                </div>
-            </div>`;
-
+            html += `<div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #10b981; text-align: center; color: #999; font-size: 11px;"><p>Total de participantes: ${participantes.length}</p><p>Relatório gerado em ${dataAtual} às ${horaAtual}</p></div></div>`;
             html2pdf().set({ margin: 10, filename: `relatorio-geral-${dataAtual.replace(/\//g, '-')}.pdf`, html2canvas: { scale: 2 }, jsPDF: { format: 'a4' } }).from(html).save();
         }
 
-        // Aviso ao fechar a página (Browser standard alert)
-        window.onbeforeunload = function() {
-            if (participantes.length > 0) {
-                return "Você tem dados cadastrados. Certifique-se de exportar o backup antes de fechar para não perder as informações.";
-            }
-        };
-
+        window.onbeforeunload = function() { if (participantes.length > 0) return "Exporte o backup!"; };
         window.onload = carregarDados;
         document.getElementById('nomeEncontro').onclick = mudarNomeEncontro;
     </script>
