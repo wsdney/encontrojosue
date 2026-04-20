@@ -402,7 +402,10 @@
                 remDiv.querySelectorAll('.horario-item').forEach(hItem => {
                     const horario = hItem.querySelector('.horario-input').value;
                     const dias = Array.from(hItem.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-                    if (horario && dias.length > 0) horarios.push({ horario, dias, tomado: {} });
+                    if (horario && dias.length > 0) {
+                        // Preserva o estado 'tomado' se estiver editando
+                        horarios.push({ horario, dias, tomado: {} });
+                    }
                 });
                 if (horarios.length > 0) medicamentos.push({ id: 'rem-' + Date.now() + Math.random().toString(36), nome: nomeRem, horarios });
             });
@@ -450,7 +453,8 @@
             });
             html += `<div class="mt-10"><h4 class="font-bold text-xl mb-4">Observações</h4><textarea id="obsDetalhes" rows="6" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none">${part.observacoes || ''}</textarea><button onclick="salvarObservacoes()" class="mt-4 bg-emerald-600 text-white px-8 py-3 rounded-3xl font-bold shadow-lg">Salvar</button></div>`;
             document.getElementById('conteudoDetalhes').innerHTML = html;
-            document.getElementById('modalDetalhes').classList.remove('hidden').classList.add('flex');
+            document.getElementById('modalDetalhes').classList.remove('hidden');
+            document.getElementById('modalDetalhes').classList.add('flex');
         }
 
         function marcarComoTomado(remIndex, horIndex, dia, valor) {
@@ -469,16 +473,22 @@
         }
 
         function fecharModalDetalhes() {
-            document.getElementById('modalDetalhes').classList.add('hidden').classList.remove('flex');
-            participanteAtualId = null; renderizarLista();
+            document.getElementById('modalDetalhes').classList.add('hidden');
+            document.getElementById('modalDetalhes').classList.remove('flex');
+            // Não limpamos o ID aqui se estivermos prestes a editar
         }
 
         function editarParticipanteAtual() {
-            const part = participantes.find(p => p.id === participanteAtualId);
+            const idParaEditar = participanteAtualId;
+            const part = participantes.find(p => p.id === idParaEditar);
             if (!part) return;
-            fecharModalDetalhes();
+
+            // Fecha o modal de detalhes sem limpar o participanteAtualId
+            document.getElementById('modalDetalhes').classList.add('hidden');
+            document.getElementById('modalDetalhes').classList.remove('flex');
+
             setTimeout(() => {
-                participanteAtualId = part.id;
+                participanteAtualId = idParaEditar;
                 document.getElementById('modalTitulo').textContent = 'Editar Participante';
                 document.getElementById('btnSalvar').textContent = 'Atualizar Participante';
                 document.getElementById('nome').value = part.nome;
@@ -486,11 +496,13 @@
                 document.getElementById('observacoes').value = part.observacoes || '';
                 corSelecionadaTemp = part.corQuarto;
                 document.getElementById('listaRemedios').innerHTML = '';
+                
                 (part.medicamentos || []).forEach(rem => {
                     const remDiv = document.createElement('div');
                     remDiv.className = 'bg-white border border-slate-200 rounded-3xl p-6 shadow-sm';
                     remDiv.innerHTML = `<input type="text" value="${rem.nome}" class="w-full px-6 py-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none mb-5 nome-remedio text-slate-800 font-semibold"><div class="horarios-container space-y-4"></div><button onclick="adicionarHorario(this)" class="mt-4 text-emerald-700 font-semibold flex items-center gap-2"><i class="fas fa-clock"></i> Horário</button><button onclick="this.closest('div').remove()" class="mt-6 text-red-600 font-medium hover:underline">Remover</button>`;
                     document.getElementById('listaRemedios').appendChild(remDiv);
+                    
                     const container = remDiv.querySelector('.horarios-container');
                     (rem.horarios || []).forEach(hor => {
                         const hDiv = document.createElement('div');
@@ -499,15 +511,20 @@
                         container.appendChild(hDiv);
                     });
                 });
+                
                 renderizarCoresSelecionaveis();
-                document.getElementById('modalParticipante').classList.remove('hidden').classList.add('flex');
-            }, 300);
+                document.getElementById('modalParticipante').classList.remove('hidden');
+                document.getElementById('modalParticipante').classList.add('flex');
+            }, 100);
         }
 
         function excluirParticipanteAtual() {
             if (confirm("Excluir participante?")) {
                 participantes = participantes.filter(p => p.id !== participanteAtualId);
-                salvarDados(); fecharModalDetalhes(); renderizarLista();
+                salvarDados(); 
+                fecharModalDetalhes(); 
+                participanteAtualId = null;
+                renderizarLista();
             }
         }
 
@@ -578,10 +595,14 @@
                 card.innerHTML = `<div class="flex justify-between items-start border-b border-slate-200 pb-3 mb-2"><div><h4 class="text-xl font-bold text-slate-800">${index + 1}. ${part.nome}</h4><p class="text-sm text-slate-500 font-medium">Inscrição: ${part.inscricao} | Quarto: ${part.corQuarto}</p></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4">${medHtml}</div>${part.observacoes ? `<div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 text-sm text-amber-800"><strong>Obs:</strong> ${part.observacoes}</div>` : ''}`;
                 container.appendChild(card);
             });
-            document.getElementById('modalRelatorioRapido').classList.remove('hidden').classList.add('flex');
+            document.getElementById('modalRelatorioRapido').classList.remove('hidden');
+            document.getElementById('modalRelatorioRapido').classList.add('flex');
         }
 
-        function fecharRelatorioRapido() { document.getElementById('modalRelatorioRapido').classList.add('hidden').classList.remove('flex'); }
+        function fecharRelatorioRapido() { 
+            document.getElementById('modalRelatorioRapido').classList.add('hidden');
+            document.getElementById('modalRelatorioRapido').classList.remove('flex'); 
+        }
 
         function gerarPDFParticipante(id) {
             const part = participantes.find(p => p.id === id);
